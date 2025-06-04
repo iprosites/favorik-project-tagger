@@ -1,0 +1,60 @@
+<!-- outlook_project_tag_addin.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Favorik Project Tagger</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 1em; }
+    input[type=text] { width: 100%; padding: 0.5em; margin-top: 0.5em; }
+    button { margin-top: 0.5em; padding: 0.5em 1em; }
+    .tag-info { margin-top: 1em; font-weight: bold; color: green; }
+  </style>
+</head>
+<body>
+  <h2>Favorik Project Tagger</h2>
+  <div id="status">Loading...</div>
+  <input type="text" id="projectCodeInput" placeholder="Enter Project Code (e.g. Triad - Carson & Co.)">
+  <button onclick="saveProjectCode()">Save</button>
+  <div class="tag-info" id="tagInfo"></div>
+
+  <script>
+    Office.onReady(info => {
+      if (info.host === Office.HostType.Outlook) {
+        loadProjectCode();
+      }
+    });
+
+    function loadProjectCode() {
+      Office.context.mailbox.item.body.getAsync("text", (result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          const bodyText = result.value;
+          const match = bodyText.match(/ProjectCode=\[(.*?)\]/);
+          if (match) {
+            document.getElementById("tagInfo").innerText = "Current Tag: " + match[1];
+            document.getElementById("projectCodeInput").value = match[1];
+          } else {
+            document.getElementById("tagInfo").innerText = "No tag found.";
+          }
+          document.getElementById("status").innerText = "Ready";
+        }
+      });
+    }
+
+    function saveProjectCode() {
+      const code = document.getElementById("projectCodeInput").value.trim();
+      if (!code) return alert("Please enter a project code.");
+      const tag = `\nProjectCode=[${code}]`;
+
+      Office.context.mailbox.item.body.setSelectedDataAsync(tag, { coercionType: Office.CoercionType.Text }, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+          document.getElementById("tagInfo").innerText = "Tag saved: " + code;
+        } else {
+          alert("Failed to insert tag: " + asyncResult.error.message);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
